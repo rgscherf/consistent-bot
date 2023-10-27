@@ -62,11 +62,24 @@ async function respondToSingleScenario(scenario) {
     ret.inappropriate = await i.run().catch(console.error);
     return ret;
 }
+async function getWeek() {
+    // todo: fetch number of completed for each week
+    const w = new Select({
+        name: "week",
+        message: "Which week do you want to do?",
+        choices: ["1", "2", "3"],
+        result: (v) => Number(v),
+    });
+    let week = await w.run().catch(console.error);
+    return week;
+}
 async function main() {
     const ans = await startup();
     if (ans === "Begin") {
+        const week = await getWeek();
         const results = await runExperiment();
         console.dir(results);
+        console.log(`Week was ${week}`);
     }
     else if (ans === "Stats") {
         console.dir(dummyScenarios);
