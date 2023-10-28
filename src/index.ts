@@ -4,16 +4,16 @@
 import shuffle from "knuth-shuffle-seeded";
 import pkg from "enquirer";
 import { clearScreen } from "./utils.js";
+import { PrismaClient } from "@prisma/client";
+import {
+  Decision,
+  addDecisionToDB,
+  getInputsForWeek,
+  scenariosWithEmptyInputForWeek,
+} from "./database.js";
 const { prompt, Select, Survey } = pkg;
 
-const dummyScenarios = {
-  "1": "This is the first scenario. A or B?",
-  "2": "This is the second scenario. A or B?",
-  "3": "This is the third scenario. A or B?",
-  "4": "This is the fourth scenario. A or B?",
-  "5": "This is the fifth scenario. A or B?",
-  "6": "This is the sixth scenario. A or B?",
-};
+const prisma = new PrismaClient();
 
 async function startup() {
   const p = new Select({
@@ -26,54 +26,63 @@ async function startup() {
   return ans;
 }
 
-async function runExperiment() {
-  var ks = Object.keys(dummyScenarios);
-  shuffle(ks);
+async function runExperiment(week, maxScenarios = 100) {
+  let scenarios = await scenariosWithEmptyInputForWeek(prisma, week);
+  shuffle(scenarios);
 
-  const responses = {};
-  while (ks.length > 0) {
-    clearScreen();
-    const k = ks.pop();
-    const scenario = dummyScenarios[k!];
-    responses[k!] = await respondToSingleScenario(scenario);
+  let responded = 0;
+  while (scenarios.length > 0 && responded < maxScenarios) {
+    const scenario = scenarios.pop()!;
+    const partialResponse = await respondToSingleScenario(scenario!.scenario);
+    const fullResponse: Decision = {
+      decision: partialResponse.decision,
+      remember: partialResponse.remember,
+      inappropriate: partialResponse.inappropriate,
+      scenarioId: scenario.id,
+      week: week,
+    };
+    addDecisionToDB(prisma, fullResponse);
+    console.log(fullResponse);
+    responded++;
   }
-  return responses;
 }
 
 async function respondToSingleScenario(scenario: string) {
-  const ret = {
-    judgement: undefined,
-    remember: undefined,
-    inappropriate: undefined,
-  };
+  console.log("\n");
   const j = new Select({
     name: "judgement",
     message: scenario,
     choices: ["A", "B"],
   });
-  ret.judgement = await j.run().catch(console.error);
+  const decision = await j.run().catch(console.error);
   const r = new Select({
     name: "remember",
     message: "Do you remember this scenario from a previous experiment?",
     choices: ["No", "Yes"],
     result: (v) => (v === "Yes" ? true : false),
   });
-  ret.remember = await r.run().catch(console.error);
+  const remember = await r.run().catch(console.error);
   const i = new Select({
     name: "inappropriate",
     message: "Was this scenario inappropriate?",
     choices: ["No", "Yes"],
     result: (v) => (v === "Yes" ? true : false),
   });
-  ret.inappropriate = await i.run().catch(console.error);
-  return ret;
+  const inappropriate = await i.run().catch(console.error);
+  return { decision, remember, inappropriate };
 }
 
 async function getWeek() {
   // todo: fetch number of completed for each week
+  const week1 = await getInputsForWeek(prisma, 1);
+  const week2 = await getInputsForWeek(prisma, 2);
+  const week3 = await getInputsForWeek(prisma, 3);
   const w = new Select({
     name: "week",
-    message: "Which week do you want to do?",
+    message: ` Which week do you want to do?
+    Week 1: ${week1.complete} complete, ${week1.incomplete} incomplete
+    Week 2: ${week2.complete} complete, ${week2.incomplete} incomplete
+    Week 3: ${week3.complete} complete, ${week3.incomplete} incomplete.`,
     choices: ["1", "2", "3"],
     result: (v) => Number(v),
   });
@@ -83,16 +92,29 @@ async function getWeek() {
 
 async function main() {
   const ans = await startup();
+  const maxScenarios = 25;
 
   if (ans === "Begin") {
     const week = await getWeek();
-    const results = await runExperiment();
-    console.dir(results);
-    console.log(`Week was ${week}`);
+    await runExperiment(week, maxScenarios);
   } else if (ans === "Stats") {
-    console.dir(dummyScenarios);
+    const week1 = await getInputsForWeek(prisma, 1);
+    const week2 = await getInputsForWeek(prisma, 2);
+    const week3 = await getInputsForWeek(prisma, 3);
+    console.log(`Completion log:
+    Week 1: ${week1.complete} complete, ${week1.incomplete} incomplete
+    Week 2: ${week2.complete} complete, ${week2.incomplete} incomplete
+    Week 3: ${week3.complete} complete, ${week3.incomplete} incomplete.`);
     main();
   }
 }
 
-await main();
+await main()
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

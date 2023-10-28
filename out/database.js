@@ -26,7 +26,7 @@ async function addScenariosToDB() {
         });
     });
 }
-export async function addInputsToScenarios() {
+export async function addInputsToScenarios(prisma) {
     let scenarios = await prisma.scenario.findMany({});
     scenarios.forEach(async (scenario) => {
         var weeks = [1, 2, 3];
@@ -43,7 +43,7 @@ export async function addInputsToScenarios() {
         });
     });
 }
-export async function scenariosWithEmptyInputForWeek(week) {
+export async function scenariosWithEmptyInputForWeek(prisma, week) {
     let emptyInputs = await prisma.scenario.findMany({
         where: {
             Input: {
@@ -56,7 +56,7 @@ export async function scenariosWithEmptyInputForWeek(week) {
     });
     return emptyInputs;
 }
-export async function addDecisionToDB({ decision, scenarioId, week, remember, inappropriate, }) {
+export async function addDecisionToDB(prisma, { decision, scenarioId, week, remember, inappropriate }) {
     const updated = await prisma.input.updateMany({
         where: { scenarioId, week },
         data: {
@@ -75,7 +75,24 @@ async function testAddingOneRecord() {
         remember: false,
         inappropriate: false,
     };
-    await addDecisionToDB(decision);
+    await addDecisionToDB(prisma, decision);
+}
+export async function getInputsForWeek(prisma, week) {
+    const ins = await prisma.input.findMany({
+        where: {
+            week: week,
+        },
+    });
+    const ret = { complete: 0, incomplete: 0 };
+    ins.forEach((i) => {
+        if (i.decision === null) {
+            ret.incomplete++;
+        }
+        else {
+            ret.complete++;
+        }
+    });
+    return ret;
 }
 async function main() { }
 main()
