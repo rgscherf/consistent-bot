@@ -5,7 +5,7 @@ import shuffle from "knuth-shuffle-seeded";
 import pkg from "enquirer";
 import { PrismaClient } from "@prisma/client";
 import { addDecisionToDB, getInputsForWeek, scenariosWithEmptyInputForWeek, } from "./database.js";
-const { prompt, Select, Survey } = pkg;
+const { Select } = pkg;
 const prisma = new PrismaClient();
 async function startup() {
     const p = new Select({
@@ -40,7 +40,7 @@ async function respondToSingleScenario(scenario) {
     const j = new Select({
         name: "judgement",
         message: scenario,
-        choices: ["A", "B"],
+        choices: ["Jones", "Smith"],
     });
     const decision = await j.run().catch(console.error);
     const r = new Select({

@@ -2,36 +2,17 @@ import { Prisma, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function addScenariosToDB() {
-  //todo : get scenarios in this format
-  const scenarios = [
-    {
-      // id: "uui1-uuid-uuid-uuid",
-      scenario: "this is scenario 1",
-    },
-    {
-      // id: "uui2-uuid-uuid-uuid",
-      scenario: "this is scenario 2",
-    },
-    {
-      // id: "uui3-uuid-uuid-uuid",
-      scenario: "this is scenario 3",
-    },
-    {
-      // id: "uui4-uuid-uuid-uuid",
-      scenario: "this is scenario 4",
-    },
-  ];
-
-  await scenarios.forEach(async (scenario) => {
-    await prisma.scenario.create({
-      data: scenario,
-    });
+export async function addScenarioToDB(prisma: PrismaClient, scenario: string) {
+  await prisma.scenario.create({
+    data: { scenario: scenario },
   });
 }
 
 export async function addInputsToScenarios(prisma: PrismaClient) {
-  let scenarios = await prisma.scenario.findMany({});
+  // Querying for an empty association: https://github.com/prisma/prisma/issues/3888
+  let scenarios = await prisma.scenario.findMany({
+    where: { Input: { none: {} } },
+  });
   scenarios.forEach(async (scenario) => {
     var weeks = [1, 2, 3];
     weeks.forEach(async (week) => {
@@ -88,17 +69,6 @@ export type Decision = {
   inappropriate: boolean;
 };
 
-async function testAddingOneRecord() {
-  const decision = {
-    week: 1,
-    scenarioId: "uui1-uuid-uuid-uuid",
-    decision: "B",
-    remember: false,
-    inappropriate: false,
-  };
-  await addDecisionToDB(prisma, decision);
-}
-
 export async function getInputsForWeek(prisma: PrismaClient, week: number) {
   const ins = await prisma.input.findMany({
     where: {
@@ -116,14 +86,19 @@ export async function getInputsForWeek(prisma: PrismaClient, week: number) {
   return ret;
 }
 
-async function main() {}
+// async function main() {
+//   addScenariosToDB();
+//   setTimeout(() => {
+//     addInputsToScenarios(prisma);
+//   }, 3000);
+// }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+// main()
+//   .then(async () => {
+//     await prisma.$disconnect();
+//   })
+//   .catch(async (e) => {
+//     console.error(e);
+//     await prisma.$disconnect();
+//     process.exit(1);
+//   });
