@@ -44,6 +44,12 @@ async function runExperiment(week, maxScenarios = 100) {
     console.log(fullResponse);
     responded++;
   }
+
+  if (scenarios.length === 0) {
+    console.log("All scenarios completed for this week. Congrats!");
+  } else if (responded === maxScenarios) {
+    console.log("You're done for the day. Congrats!");
+  }
 }
 
 async function respondToSingleScenario(scenario: string) {
@@ -96,16 +102,20 @@ async function main() {
   if (ans === "Begin") {
     const week = await getWeek();
     await runExperiment(week, maxScenarios);
+    showStats();
   } else if (ans === "Stats") {
-    const week1 = await getInputsForWeek(prisma, 1);
-    const week2 = await getInputsForWeek(prisma, 2);
-    const week3 = await getInputsForWeek(prisma, 3);
-    console.log(`Completion log:
+    showStats();
+  }
+}
+
+async function showStats() {
+  const week1 = await getInputsForWeek(prisma, 1);
+  const week2 = await getInputsForWeek(prisma, 2);
+  const week3 = await getInputsForWeek(prisma, 3);
+  console.log(`Completion log:
     Week 1: ${week1.complete} complete, ${week1.incomplete} incomplete
     Week 2: ${week2.complete} complete, ${week2.incomplete} incomplete
     Week 3: ${week3.complete} complete, ${week3.incomplete} incomplete.`);
-    main();
-  }
 }
 
 await main()

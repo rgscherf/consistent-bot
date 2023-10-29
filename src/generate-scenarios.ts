@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { addInputsToScenarios, addScenarioToDB } from "./database.js";
 import { APIPromise } from "openai/core.mjs";
 import { ChatCompletion } from "openai/resources/index.mjs";
+import { setTimeout } from "timers/promises";
 
 const chatGPTPrompt = `
 Create a 2-4 paragraph scenario of at least 300 words.
@@ -15,8 +16,11 @@ The scenario you write must include:
 - numbers, such as dollar values or dates.
 - a specific chain of events.
 - lots of small details that complicate the scenario and add evidence for either side.
-- details that may or may not be relevant to the case.
-- the scenario must be at least 300 words long. If the scenario is too short, add additional details or events until it reaches at least 400 words.
+
+Although you should add lots of details, ensure they are relevant to the events at hand.
+Also, ensure that every detail is consistent with the other details.
+Finally, ensure that each detail contributes to the body of evidence for Smith or Jones.
+Remember to keep the evidence balanced so a judge would have a hard time deciding who is at fault.
 
 The scenario may be about money, but it could also be about whether one party is at fault for some event.
 
@@ -26,10 +30,10 @@ Only provide the sequence of events. Do not offer any commentary about the scena
 const openai = new OpenAI();
 const prisma = new PrismaClient();
 
-async function main() {
-  let twenty: APIPromise<ChatCompletion>[] = [];
-  for (let i = 0; i < 100; i++) {
-    twenty.push(
+async function getChunk() {
+  let five: APIPromise<ChatCompletion>[] = [];
+  for (let i = 0; i < 5; i++) {
+    five.push(
       openai.chat.completions.create({
         messages: [{ role: "system", content: chatGPTPrompt }],
         model: "gpt-4",
@@ -37,7 +41,7 @@ async function main() {
       })
     );
   }
-  let completed = await Promise.all(twenty);
+  let completed = await Promise.all(five);
   let scenarios = completed.map((c) => {
     return c.choices[0].message.content;
   });
@@ -45,6 +49,13 @@ async function main() {
     return addScenarioToDB(prisma, scenario!);
   });
   await Promise.all(scenarioInsertions);
+}
+
+async function main() {
+  for (let i = 0; i < 20; i++) {
+    await getChunk();
+    await setTimeout(60000);
+  }
 }
 
 main().then(() => {
