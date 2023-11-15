@@ -4,6 +4,7 @@
   "description": "Infrastructure for testing self-consistency in analytically-complex problem solving (CSC 512)",
   "main": "out/index.js",
   "scripts": {
+    "tabulate": "node out/tabulate.js",
     "judge": "node out/index.js",
     "generate": "node out/generate-scenarios.js"
   },

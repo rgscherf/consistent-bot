@@ -66,6 +66,22 @@ export async function getInputsForWeek(prisma, week) {
     });
     return ret;
 }
+export async function getInputsForScenario(prisma, scenarioId) {
+    const ret = await prisma.input.findMany({
+        where: {
+            scenarioId: scenarioId,
+        },
+    });
+    return ret;
+}
+export async function getScenarioKeys(prisma) {
+    const ret = await prisma.scenario.findMany({
+        select: {
+            id: true,
+        },
+    });
+    return ret;
+}
 // async function main() {
 //   addScenariosToDB();
 //   setTimeout(() => {

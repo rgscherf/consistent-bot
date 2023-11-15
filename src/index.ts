@@ -32,7 +32,10 @@ async function runExperiment(week, maxScenarios = 100) {
   let responded = 0;
   while (scenarios.length > 0 && responded < maxScenarios) {
     const scenario = scenarios.pop()!;
-    const partialResponse = await respondToSingleScenario(scenario!.scenario);
+    const partialResponse = await respondToSingleScenario(
+      scenario!.scenario,
+      responded
+    );
     const fullResponse: Decision = {
       decision: partialResponse.decision,
       remember: partialResponse.remember,
@@ -52,8 +55,12 @@ async function runExperiment(week, maxScenarios = 100) {
   }
 }
 
-async function respondToSingleScenario(scenario: string) {
+async function respondToSingleScenario(
+  scenario: string,
+  respondedToSoFar: number
+) {
   console.log("\n");
+  console.log(`Scenario #${respondedToSoFar + 1}:\n`);
   const j = new Select({
     name: "judgement",
     message: scenario,
